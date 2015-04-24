@@ -83,6 +83,83 @@
             will then have its <see cref="M:Rebus.Bus.IInitializable.Initialize"/> method called before the bus is started
             </summary>
         </member>
+        <member name="T:Rebus.Pipeline.IIncomingStep">
+            <summary>
+            Represents a step that will have its <see cref="M:Rebus.Pipeline.IIncomingStep.Process(Rebus.Pipeline.IncomingStepContext,System.Func{System.Threading.Tasks.Task})"/> method called for each incoming message to be handled.
+            </summary>
+        </member>
+        <member name="T:Rebus.Pipeline.IStep">
+            <summary>
+            General step interface - allows for treating incoming/outgoing pipeline steps equally in some regards, even though they're different
+            </summary>
+        </member>
+        <member name="M:Rebus.Pipeline.IIncomingStep.Process(Rebus.Pipeline.IncomingStepContext,System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Carries out whichever logic it takes to do something good for the incoming message :)
+            </summary>
+        </member>
+        <member name="T:Rebus.Pipeline.IncomingStepContext">
+            <summary>
+            Concrete derivation of <see cref="T:Rebus.Pipeline.StepContext"/> that is meant to be used to pass down the pipeline for processing incoming messages
+            </summary>
+        </member>
+        <member name="T:Rebus.Pipeline.StepContext">
+            <summary>
+            General step context model that encapsulates an object bag that can be used to pass data from step to step when executing a step pipeline
+            </summary>
+        </member>
+        <member name="F:Rebus.Pipeline.StepContext.StepContextKey">
+            <summary>
+            Key reserved for the step context when it is inserted into the current <see cref="P:Rebus.Transport.ITransactionContext.Items"/>
+            </summary>
+        </member>
+        <member name="M:Rebus.Pipeline.StepContext.Save``1(``0)">
+            <summary>
+            Saves the given instance in the bag with a key derived from the (possibly explicitly specified) type <see cref="!:T"/> (by calling <see cref="P:System.Type.FullName"/>).
+            Any instances currently stored under that key will be overwritten.
+            </summary>
+        </member>
+        <member name="M:Rebus.Pipeline.StepContext.Save``1(System.String,``0)">
+            <summary>
+            Saves the given instance in the bag with the specified key. Any instances currently stored under that key will be overwritten.
+            </summary>
+        </member>
+        <member name="M:Rebus.Pipeline.StepContext.Load``1">
+            <summary>
+            Loads the instance stored under the key that is stored under a key as determined by calling <see cref="P:System.Type.FullName"/> on the specified type <see cref="!:T"/>.
+            Returns null if none could be found.
+            </summary>
+        </member>
+        <member name="M:Rebus.Pipeline.StepContext.Load``1(System.String)">
+            <summary>
+            Loads the instance stored under the specified key. Returns null if none could be found.
+            </summary>
+        </member>
+        <member name="M:Rebus.Pipeline.IncomingStepContext.#ctor(Rebus.Messages.TransportMessage,Rebus.Transport.ITransactionContext)">
+            <summary>
+            Constructs the step context, initially stashing the given <see cref="T:Rebus.Messages.TransportMessage"/> and <see cref="T:Rebus.Transport.ITransactionContext"/> into its bag of objects
+            </summary>
+        </member>
+        <member name="T:Rebus.Pipeline.IOutgoingStep">
+            <summary>
+            Represents a step that will have its <see cref="M:Rebus.Pipeline.IOutgoingStep.Process(Rebus.Pipeline.OutgoingStepContext,System.Func{System.Threading.Tasks.Task})"/> method called for each outgoing message to be sent.
+            </summary>
+        </member>
+        <member name="M:Rebus.Pipeline.IOutgoingStep.Process(Rebus.Pipeline.OutgoingStepContext,System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Carries out whichever logic it takes to do something good for the outgoing message :)
+            </summary>
+        </member>
+        <member name="T:Rebus.Pipeline.OutgoingStepContext">
+            <summary>
+            Concrete derivation of <see cref="T:Rebus.Pipeline.StepContext"/> that is meant to be used to pass down the pipeline for processing outgoing messages
+            </summary>
+        </member>
+        <member name="M:Rebus.Pipeline.OutgoingStepContext.#ctor(Rebus.Messages.Message,Rebus.Transport.ITransactionContext,Rebus.Pipeline.Send.DestinationAddresses)">
+            <summary>
+            Constructs the step context, initially stashing the given <see cref="T:Rebus.Messages.Message"/>, list of <see cref="T:Rebus.Pipeline.Send.DestinationAddresses"/> and <see cref="T:Rebus.Transport.ITransactionContext"/> into its bag of objects
+            </summary>
+        </member>
         <member name="T:Rebus.Sagas.ISagaData">
             <summary>
             Interface of a saga data instance. The saga data represents the state of the state machine instance of the process manager,
@@ -566,6 +643,32 @@
             Header that indicates that the queueing system can trade reliability for performance in order to deliver this message as fast as possible
             </summary>
         </member>
+        <member name="F:Rebus.Messages.Headers.SentTime">
+            <summary>
+            Headers with <see cref="T:System.DateTimeOffset"/> (serialized with the format string 'O') of the time when the message was sent.
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.Intent">
+            <summary>
+            Header that indicates whether this message was sent or published
+            </summary>
+        </member>
+        <member name="T:Rebus.Messages.Headers.IntentOptions">
+            <summary>
+            Contains the possible values for the <see cref="F:Rebus.Messages.Headers.Intent"/> header
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.IntentOptions.PointToPoint">
+            <summary>
+            This value indicates that the message was sent to one specific recipient, i.e. either by sending or replying
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.IntentOptions.PublishSubscribe">
+            <summary>
+            This value indicates that the message was published to zero or more recipients, i.e. it might not actually be received by anyone (which,
+            when auditing, would mean that the message could potentially never have a copy stored anywhere)
+            </summary>
+        </member>
         <member name="M:Rebus.Subscriptions.ISubscriptionStorage.GetSubscriberAddresses(System.String)">
             <summary>
             Gets all destination addresses for the given topic
@@ -605,6 +708,32 @@
         <member name="M:Rebus.Persistence.SqlServer.SqlServerPersistenceConfigurationExtensions.StoreInSqlServer(Rebus.Config.StandardConfigurer{Rebus.Timeouts.ITimeoutManager},System.String,System.String,System.Boolean)">
             <summary>
             Configures Rebus to use SQL Server to store timeouts.
+            </summary>
+        </member>
+        <member name="T:Rebus.Pipeline.Send.DestinationAddresses">
+            <summary>
+            Encapsulates a list of destination addresses
+            </summary>
+        </member>
+        <member name="M:Rebus.Pipeline.Send.DestinationAddresses.#ctor(System.Collections.Generic.IEnumerable{System.String})">
+            <summary>
+            Constructs the list of destination addresses
+            </summary>
+        </member>
+        <member name="T:Rebus.Retry.IRetryStrategy">
+            <summary>
+            Determines the retry strategy by providing an implementation of <see cref="T:Rebus.Retry.IRetryStrategyStep"/> which will be
+            put in front of the incoming message pipeline
+            </summary>
+        </member>
+        <member name="M:Rebus.Retry.IRetryStrategy.GetRetryStep">
+            <summary>
+            Should return a <see cref="T:Rebus.Retry.IRetryStrategyStep"/> which is an <see cref="T:Rebus.Pipeline.IIncomingStep"/> that implements the retry strategy
+            </summary>
+        </member>
+        <member name="T:Rebus.Retry.IRetryStrategyStep">
+            <summary>
+            Special marker for the retry strategy step
             </summary>
         </member>
         <member name="T:Rebus.Retry.Simple.SimpleRetryStrategy">
