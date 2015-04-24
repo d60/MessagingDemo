@@ -18,7 +18,7 @@ namespace Finance
         {
             using (var adapter = new BuiltinHandlerActivator())
             {
-                adapter.Register(() => new InvoicingProcessManager());
+                adapter.Register(() => new InvoicingProcessManager(adapter.Bus));
 
                 Configure.With(adapter)
                     .Logging(l => l.ColoredConsole(minLevel: LogLevel.Warn))

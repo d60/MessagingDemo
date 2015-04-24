@@ -597,9 +597,14 @@
         </member>
         <member name="M:Rebus.Persistence.SqlServer.SqlServerPersistenceConfigurationExtensions.StoreInSqlServer(Rebus.Config.StandardConfigurer{Rebus.Subscriptions.ISubscriptionStorage},System.String,System.String,System.Boolean,System.Boolean)">
             <summary>
-            Configures Rebus to use SQL Server to strore subscriptions. Use <see cref="!:isCentralized"/> = true to indicate whether it's OK to short-circuit
+            Configures Rebus to use SQL Server to store subscriptions. Use <see cref="!:isCentralized"/> = true to indicate whether it's OK to short-circuit
             subscribing and unsubscribing by manipulating the subscription directly from the subscriber or just let it default to false to preserve the
             default behavior.
+            </summary>
+        </member>
+        <member name="M:Rebus.Persistence.SqlServer.SqlServerPersistenceConfigurationExtensions.StoreInSqlServer(Rebus.Config.StandardConfigurer{Rebus.Timeouts.ITimeoutManager},System.String,System.String,System.Boolean)">
+            <summary>
+            Configures Rebus to use SQL Server to store timeouts.
             </summary>
         </member>
         <member name="T:Rebus.Retry.Simple.SimpleRetryStrategy">
