@@ -1,0 +1,790 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Rebus</name>
+    </assembly>
+    <members>
+        <member name="T:Rebus.Activation.BuiltinHandlerActivator">
+            <summary>
+            Built-in handler activator that can be used when dependency injection is not required, or when inline
+            lambda-based handler are wanted
+            </summary>
+        </member>
+        <member name="T:Rebus.Activation.IHandlerActivator">
+            <summary>
+            Responsible for creating handlers for a given message type
+            </summary>
+        </member>
+        <member name="M:Rebus.Activation.IHandlerActivator.GetHandlers``1(``0,Rebus.Transport.ITransactionContext)">
+            <summary>
+            Must return all relevant handler instances for the given message
+            </summary>
+        </member>
+        <member name="T:Rebus.Handlers.IHandleMessages`1">
+            <summary>
+            Message handler interface. Implement this in order to get to handle messages of a specific type
+            </summary>
+        </member>
+        <member name="T:Rebus.Handlers.IHandleMessages">
+            <summary>
+            Base message handler interface. Don't implement this one directly, it would give you nothing
+            </summary>
+        </member>
+        <member name="T:Rebus.Bus.IBus">
+            <summary>
+            This is the main bus API
+            </summary>
+        </member>
+        <member name="M:Rebus.Bus.IBus.SendLocal(System.Object,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            Sends the specified message to our own input queue address
+            </summary>
+        </member>
+        <member name="M:Rebus.Bus.IBus.Send(System.Object,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            Sends the specified message to a destination that is determined by calling <see cref="M:Rebus.Routing.IRouter.GetDestinationAddress(Rebus.Messages.Message)"/>
+            </summary>
+        </member>
+        <member name="M:Rebus.Bus.IBus.Reply(System.Object,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            Sends the specified reply message to a destination that is determined by looking up the <see cref="F:Rebus.Messages.Headers.ReturnAddress"/> header of the message currently being handled.
+            This method can only be called from within a message handler.
+            </summary>
+        </member>
+        <member name="M:Rebus.Bus.IBus.Publish(System.String,System.Object,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            Publishes the specified message to the specified topic. Default behavior is to look up the addresses of those who subscribed to the given topic
+            by calling <see cref="M:Rebus.Subscriptions.ISubscriptionStorage.GetSubscriberAddresses(System.String)"/> but the transport may override this behavior if it has special capabilities.
+            </summary>
+        </member>
+        <member name="M:Rebus.Bus.IBus.Defer(System.TimeSpan,System.Object,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+            Defers the delivery of the message by attaching a <see cref="F:Rebus.Messages.Headers.DeferredUntil"/> header to it and delivering it to the configured timeout manager endpoint
+            (defaults to be ourselves). When the time is right, the deferred message is returned to the address indicated by the <see cref="F:Rebus.Messages.Headers.ReturnAddress"/> header.
+            </summary>
+        </member>
+        <member name="M:Rebus.Bus.IBus.Subscribe(System.String)">
+            <summary>
+            Subscribes the current endpoint to the given topic. If the <see cref="T:Rebus.Subscriptions.ISubscriptionStorage"/> is centralized (determined by checking <see cref="P:Rebus.Subscriptions.ISubscriptionStorage.IsCentralized"/>),
+            the subscription is registered immediately. If not, the owner of the given topic is checked (by calling <see cref="M:Rebus.Routing.IRouter.GetOwnerAddress(System.String)"/>), and a
+            <see cref="T:Rebus.Messages.Control.SubscribeRequest"/> is sent to the owning endpoint).
+            </summary>
+        </member>
+        <member name="M:Rebus.Bus.IBus.Unsubscribe(System.String)">
+            <summary>
+            Unsubscribes the current endpoint from the given topic. If the <see cref="T:Rebus.Subscriptions.ISubscriptionStorage"/> is centralized (determined by checking <see cref="P:Rebus.Subscriptions.ISubscriptionStorage.IsCentralized"/>),
+            the subscription is removed immediately. If not, the owner of the given topic is checked (by calling <see cref="M:Rebus.Routing.IRouter.GetOwnerAddress(System.String)"/>), and an
+            <see cref="T:Rebus.Messages.Control.UnsubscribeRequest"/> is sent to the owning endpoint).
+            </summary>
+        </member>
+        <member name="T:Rebus.Bus.IInitializable">
+            <summary>
+            Anything that is resolved with the injectionist can be marked as initializable by implementing this interface, which
+            will then have its <see cref="M:Rebus.Bus.IInitializable.Initialize"/> method called before the bus is started
+            </summary>
+        </member>
+        <member name="T:Rebus.Sagas.ISagaData">
+            <summary>
+            Interface of a saga data instance. The saga data represents the state of the state machine instance of the process manager,
+            that the saga essentially implements.
+            </summary>
+        </member>
+        <member name="P:Rebus.Sagas.ISagaData.Id">
+            <summary>
+            Saga ID used by Rebus. Do not mess with this one.
+            </summary>
+        </member>
+        <member name="P:Rebus.Sagas.ISagaData.Revision">
+            <summary>
+            Saga instance revision used by Rebus. Do not mess with this one.
+            </summary>
+        </member>
+        <member name="T:Rebus.Timers.AsyncPeriodicBackgroundTask">
+            <summary>
+            <see cref="T:System.Threading.Tasks.Task"/>-based background timer thingie, that will periodically call an async <see cref="T:System.Func`1"/>
+             </summary>
+        </member>
+        <member name="T:Rebus.Transport.AmbientTransactionContext">
+            <summary>
+            Provides an "ambient" context for stashing away an instance that implements the current <see cref="T:Rebus.Transport.ITransactionContext"/>. The
+            ambient transaction context is automatically preserved even though threads are changed etc.
+            </summary>
+        </member>
+        <member name="T:Rebus.Workers.IWorker">
+            <summary>
+            Represents a worker, which is a thing that is capable of doing work. It may correspond to a worker thread
+            if the usual Rebus worker threads are used, but it may be possible to do other stuff as well
+            </summary>
+        </member>
+        <member name="M:Rebus.Workers.IWorker.Stop">
+            <summary>
+            Signals that the worker should try to stop itself because it will be thrown out and disposed in a little while
+            </summary>
+        </member>
+        <member name="P:Rebus.Workers.IWorker.Name">
+            <summary>
+            Gets the name of the worker. Each worker will be named so that they can be recognized
+            </summary>
+        </member>
+        <member name="T:Rebus.Bus.MessageExtensions">
+            <summary>
+            Small helpers that make it easier to work with the <see cref="T:Rebus.Messages.Message"/> class
+            </summary>
+        </member>
+        <member name="M:Rebus.Bus.MessageExtensions.HasReturnAddress(Rebus.Messages.Message)">
+            <summary>
+            Gets whether the message's <see cref="F:Rebus.Messages.Headers.ReturnAddress"/> header is set to something
+            </summary>
+        </member>
+        <member name="M:Rebus.Bus.MessageExtensions.SetReturnAddressFromTransport(Rebus.Messages.Message,Rebus.Transport.ITransport)">
+            <summary>
+            Uses the transport's input queue address as the <see cref="F:Rebus.Messages.Headers.ReturnAddress"/> on the message
+            </summary>
+        </member>
+        <member name="M:Rebus.Bus.MessageExtensions.SetDeferHeader(Rebus.Messages.Message,System.DateTimeOffset)">
+            <summary>
+            Sets the <see cref="F:Rebus.Messages.Headers.DeferredUntil"/> header to the specified time
+            </summary>
+        </member>
+        <member name="T:Rebus.Bus.RebusBus">
+            <summary>
+            This is the main bus thing which you'll most likely hold on to
+            </summary>
+        </member>
+        <member name="T:Rebus.Workers.ThreadBased.ThreadWorker">
+            <summary>
+            Implementation of <see cref="T:Rebus.Workers.IWorker"/> that has a dedicated thread the continuously polls the given <see cref="T:Rebus.Workers.ThreadBased.ThreadWorkerSynchronizationContext"/> for work,
+            and in case it doesn't find any, it'll try to receive a new message and invoke a receive pipeline on that
+            </summary>
+        </member>
+        <member name="T:Rebus.Workers.ThreadBased.ThreadWorkerSynchronizationContext">
+            <summary>
+            Derivation of <see cref="T:System.Threading.SynchronizationContext"/> that queues posted callbacks, allowing for worker threads to retrieve them later 
+            on as a simple, callable <see cref="T:System.Action"/>, by calling <see cref="M:Rebus.Workers.ThreadBased.ThreadWorkerSynchronizationContext.GetNextContinuationOrNull"/>
+            </summary>
+        </member>
+        <member name="P:Rebus.Config.Options.NumberOfWorkers">
+            <summary>
+            Configures the number of workers
+            </summary>
+        </member>
+        <member name="P:Rebus.Config.Options.MaxParallelism">
+            <summary>
+            Configures how many outstanding continuations (i.e. async <see cref="T:System.Threading.Tasks.Task"/>-based parallel operations) we
+            allow per worker
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:Rebus.Exceptions.ConcurrencyException" -->
+        <member name="T:Rebus.Handlers.InternalHandlersContributor">
+            <summary>
+            Decoration of <see cref="T:Rebus.Activation.IHandlerActivator"/> that adds a few special handlers when an incoming message can be recognized
+            as a special Rebus message
+            </summary>
+        </member>
+        <member name="T:Rebus.Injection.Injectionist">
+            <summary>
+            Dependency injectionist that can be used for configuring a system of injected service implementations, possibly with decorators,
+            with caching of instances so that the same instance of each class is used throughout the tree. Should probably not be used for
+            anything at runtime, is only meant to be used in configuration scenarios.
+            </summary>
+        </member>
+        <member name="T:Rebus.Injection.IResolutionContext">
+            <summary>
+            Represents the context of resolving one root service and can be used throughout the tree to fetch something to be injected
+            </summary>
+        </member>
+        <member name="T:Rebus.Injection.ResolutionException">
+            <summary>
+            Exceptions that is thrown when something goes wrong while working with the injectionist
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.AbstractRebusLoggerFactory">
+            <summary>
+            If you intend to implement your own logging, you probably want to derive
+            from this class and implement <seealso cref="M:Rebus.Logging.AbstractRebusLoggerFactory.GetLogger(System.Type)"/>.
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.IRebusLoggerFactory">
+            <summary>
+            Basic interface of a Rebus logger factory. If you intend to implement your own,
+            <see cref="T:Rebus.Logging.AbstractRebusLoggerFactory"/> is the one to derive from - you should
+            probably not implement this interface directly.
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.IRebusLoggerFactory.GetCurrentClassLogger">
+            <summary>
+            Gets a logger that is initialized to somehow carry information on the class that is using it.
+            Be warned that this method will most likely be pretty slow, because it will probably rely on
+            some clunky <see cref="T:System.Diagnostics.StackFrame"/> inspection.
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.AbstractRebusLoggerFactory.GetLogger(System.Type)">
+            <summary>
+            Should get a logger for the specified type 
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.AbstractRebusLoggerFactory.GetCurrentClassLogger">
+            <summary>
+            Gets a logger that is initialized to somehow carry information on the class that is using it.
+            Be warned that this method will most likely be pretty slow, because it will probably rely on
+            some clunky <see cref="T:System.Diagnostics.StackFrame"/> inspection.
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.ColorSetting">
+            <summary>
+            Represents a console color setting consisting of a foreground and a background color
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.ColorSetting.Foreground(System.ConsoleColor)">
+            <summary>
+            Sets the foreground color to the specified color
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.ColorSetting.Background(System.ConsoleColor)">
+            <summary>
+            Sets the background color to the specified color
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.ColorSetting.Enter">
+            <summary>
+            Sets the current console colors to those specified in this <see cref="T:Rebus.Logging.ColorSetting"/>,
+            restoring them to the previous colors when disposing
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.ColorSetting.ForegroundColor">
+            <summary>
+            Gets the foreground color
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.ColorSetting.BackgroundColor">
+            <summary>
+            Gets the background color
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.ConsoleLoggerFactory">
+            <summary>
+            Logger factory that logs stuff to the console
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.ConsoleLoggerFactory.#ctor(System.Boolean)">
+            <summary>
+            Constructs the logger factory
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.ConsoleLoggerFactory.GetLogger(System.Type)">
+            <summary>
+            Gets a logger for logging stuff from within the specified type
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.ConsoleLoggerFactory.Colors">
+            <summary>
+            Gets or sets the colors to use when logging
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.ConsoleLoggerFactory.MinLevel">
+            <summary>
+            Gets or sets the minimum logging level to output to the console
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.ConsoleLoggerFactory.Filters">
+            <summary>
+            Gets the list of filters that each log statement will be passed through in order to evaluate whether
+            the given log statement should be output to the console
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.ConsoleLoggerFactory.ShowTimestamps">
+            <summary>
+            Gets/sets whether timestamps should be shown when logging
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.ConsoleLoggerFactory.LogStatement">
+            <summary>
+            One single log statement
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.ConsoleLoggerFactory.LogStatement.Level">
+            <summary>
+            The level of this log statement
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.ConsoleLoggerFactory.LogStatement.Text">
+            <summary>
+            The text (possibly inclusing formatting placeholders) of this log statement
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.ConsoleLoggerFactory.LogStatement.Args">
+            <summary>
+            The values to use for string interpolation
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.ILog">
+            <summary>
+            Interface of a Rebus logger
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.ILog.Debug(System.String,System.Object[])">
+            <summary>
+            Writes the specified message with the DEBUG level
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.ILog.Info(System.String,System.Object[])">
+            <summary>
+            Writes the specified message with the INFO level
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.ILog.Warn(System.String,System.Object[])">
+            <summary>
+            Writes the specified message with the WARN level
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.ILog.Error(System.Exception,System.String,System.Object[])">
+            <summary>
+            Writes the specified message with the ERROR level and includes the full details of the specified exception
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.ILog.Error(System.String,System.Object[])">
+            <summary>
+            Writes the specified message with the ERROR level
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.GhettoFileLoggerFactory">
+            <summary>
+            Crude file logger implementation
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.GhettoFileLoggerFactory.#ctor(System.String)">
+            <summary>
+            Creates a crude file-logging thingie, that will flush to the specified file every 500 ms
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.GhettoFileLoggerFactory.WithFilter(System.Func{Rebus.Logging.GhettoFileLoggerFactory.LogMessage,System.Boolean})">
+            <summary>
+            Adds the specified filter predicate function to the list of filters that will be evaluated for each log message,
+            determining whether or not the given message will end up in the file
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.GhettoFileLoggerFactory.Finalize">
+            <summary>
+            Ensure, in the most hackish way possible, that the buffer is flushed to disk and that the background flush timer is stopped
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.GhettoFileLoggerFactory.GetLogger(System.Type)">
+            <summary>
+            Gets a <see cref="T:Rebus.Logging.GhettoFileLoggerFactory.CrudeFileLogger"/> to log yo stuff good
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.GhettoFileLoggerFactory.LogMessage">
+            <summary>
+            Model of a log message that has been queued to be flushed to disk later
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.GhettoFileLoggerFactory.LogMessage.LoggerType">
+            <summary>
+            Indicates the type from which the logger that created the log message was created
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.GhettoFileLoggerFactory.LogMessage.Time">
+            <summary>
+            The time when this log message was emitted
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.GhettoFileLoggerFactory.LogMessage.Message">
+            <summary>
+            The log message
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.GhettoFileLoggerFactory.LogMessage.Level">
+            <summary>
+            The log level
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.LoggingColors">
+            <summary>
+            Represents a set of colors to be used by the <see cref="T:Rebus.Logging.ConsoleLoggerFactory"/> when running
+            in colored mode
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.LoggingColors.#ctor">
+            <summary>
+            Constructs the default set of logging colors, which if gray, green, yellow, and red foreground for log
+            levels debug, info, warn, and error respectively.
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.LoggingColors.Debug">
+            <summary>
+            Gets/sets the color to use when printing DEBUG log statements
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.LoggingColors.Info">
+            <summary>
+            Gets/sets the color to use when printing INFO log statements
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.LoggingColors.Warn">
+            <summary>
+            Gets/sets the color to use when printing WARN log statements
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.LoggingColors.Error">
+            <summary>
+            Gets/sets the color to use when printing ERROR log statements
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.LogLevel">
+            <summary>
+            Enumeration of the log levels available with Rebus loggers. As a general rule of thumb, levels WARN
+            and ERROR should, as a minimum, ALWAYS be logged to a local file or another persistent means.
+            </summary>
+        </member>
+        <member name="F:Rebus.Logging.LogLevel.Debug">
+            <summary>
+            Log statement of very low importance which is most likely only relevant in extreme debugging scenarios
+            </summary>
+        </member>
+        <member name="F:Rebus.Logging.LogLevel.Info">
+            <summary>
+            Log statement of low importance to unwatched running systems which however can be very relevant when testing and debugging
+            </summary>
+        </member>
+        <member name="F:Rebus.Logging.LogLevel.Warn">
+            <summary>
+            Log statement of fairly high importance - always contains relevant information on somewhing that may be a sign that something is wrong
+            </summary>
+        </member>
+        <member name="F:Rebus.Logging.LogLevel.Error">
+            <summary>
+            Log statement of the highest importance - always contains relevant information on something that has gone wrong
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.NullLoggerFactory">
+            <summary>
+            This is the /dev/null of loggers...
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.NullLoggerFactory.GetLogger(System.Type)">
+            <summary>
+            Returns a <see cref="T:Rebus.Logging.NullLoggerFactory.NullLogger"/> which is the /dev/null of logging...
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.RebusLoggerFactory">
+            <summary>
+            Static gateway that can be used by Rebus components to enlist in the logging framework
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.RebusLoggerFactory.Reset">
+            <summary>
+            Resets the current implementation of <see cref="T:Rebus.Logging.IRebusLoggerFactory"/> back to the default, which is a
+            <see cref="T:Rebus.Logging.ConsoleLoggerFactory"/> with colors turned ON
+            </summary>
+        </member>
+        <member name="E:Rebus.Logging.RebusLoggerFactory.Changed">
+            <summary>
+            Event that is raised when the global implementation of <see cref="T:Rebus.Logging.IRebusLoggerFactory"/> is changed to something else.
+            Note that the event is also raised immediately for each particular subscriber when they subscribe.
+            </summary>
+        </member>
+        <member name="P:Rebus.Logging.RebusLoggerFactory.Current">
+            <summary>
+            Gets the currently configured implementation of <see cref="T:Rebus.Logging.IRebusLoggerFactory"/>. The instance is global for the
+            entire AppDomain
+            </summary>
+        </member>
+        <member name="T:Rebus.Logging.TraceLoggerFactory">
+            <summary>
+            Logger factory that writes log statements using the <see cref="T:System.Diagnostics.Trace"/> API
+            </summary>
+        </member>
+        <member name="M:Rebus.Logging.TraceLoggerFactory.GetLogger(System.Type)">
+            <summary>
+            Gets a <see cref="T:Rebus.Logging.TraceLoggerFactory.TraceLogger"/>
+            </summary>
+        </member>
+        <member name="T:Rebus.Messages.Control.SubscribeRequest">
+            <summary>
+            Control message that can be used to establish a subscription of a given topic to the endpoint with the given address.
+            The receiving endpoint must either be the one publishing messages with the given topic, or it must have a connection
+            to a centralized subscription storage
+            </summary>
+        </member>
+        <member name="T:Rebus.Messages.Control.UnsubscribeRequest">
+            <summary>
+            Control message that can be used to end a subscription of a given topic to the endpoint with the given address.
+            The receiving endpoint must either be the one publishing messages with the given topic, or it must have a connection
+            to a centralized subscription storage
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:Rebus.Messages.Headers" -->
+        <member name="F:Rebus.Messages.Headers.MessageId">
+            <summary>
+            Id of the message. Either set the ID explicitly when sending a message, or Rebus will assign one to the message.
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.Type">
+            <summary>
+            .NET type (if possible) of the sent message 
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.CorrelationId">
+            <summary>
+            Any messages sent/forwarded/replied/published while handling a message will get the correlation ID (or the message ID
+            if there's no correlation ID) of the handled message copied to it. When a message is initially sent, its correlation ID
+            will be its own message ID.
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.ReturnAddress">
+            <summary>
+            The return address of the message, i.e. the address that repliers must reply to.
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.ContentType">
+            <summary>
+            Describes the contents of the message with a type and an encoding
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.ErrorDetails">
+            <summary>
+            Details that can be attached to a message that is forwarded after it has failed
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.SourceQueue">
+            <summary>
+            Source queue of a message the has bee forwarded to an error queue after it has failed
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.DeferredUntil">
+            <summary>
+            Indicates that the message must not be consumed right away, delivery should be delayed until the specified time
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.TimeToBeReceived">
+            <summary>
+            Indicates a time span (as a string, on the form hh:MM:ss) after which the queueing system can safely delete the message and thus never deliver it
+            </summary>
+        </member>
+        <member name="F:Rebus.Messages.Headers.Express">
+            <summary>
+            Header that indicates that the queueing system can trade reliability for performance in order to deliver this message as fast as possible
+            </summary>
+        </member>
+        <member name="M:Rebus.Subscriptions.ISubscriptionStorage.GetSubscriberAddresses(System.String)">
+            <summary>
+            Gets all destination addresses for the given topic
+            </summary>
+        </member>
+        <member name="M:Rebus.Subscriptions.ISubscriptionStorage.RegisterSubscriber(System.String,System.String)">
+            <summary>
+            Registers the given <see cref="!:subscriberAddress"/> as a subscriber of the given topic
+            </summary>
+        </member>
+        <member name="M:Rebus.Subscriptions.ISubscriptionStorage.UnregisterSubscriber(System.String,System.String)">
+            <summary>
+            Unregisters the given <see cref="!:subscriberAddress"/> as a subscriber of the given topic
+            </summary>
+        </member>
+        <member name="P:Rebus.Subscriptions.ISubscriptionStorage.IsCentralized">
+            <summary>
+            Gets whether the subscription storage is centralized and thus supports bypassing the usual subscription request
+            (in a fully distributed architecture, a subscription is established by sending a <see cref="T:Rebus.Messages.Control.SubscribeRequest"/>
+            to the owner of a given topic, who then remembers the subscriber somehow - if the subscription storage is
+            centralized, the message exchange can be bypassed, and the subscription can be established directly by
+            having the subscriber register itself)
+            </summary>
+        </member>
+        <member name="M:Rebus.Persistence.SqlServer.SqlServerPersistenceConfigurationExtensions.StoreInSqlServer(Rebus.Config.StandardConfigurer{Rebus.Sagas.ISagaStorage},System.String,System.String,System.String,System.Boolean)">
+            <summary>
+            Configures Rebus to use SQL Server to store sagas, using the tables specified to store data and indexed properties respectively.
+            </summary>
+        </member>
+        <member name="M:Rebus.Persistence.SqlServer.SqlServerPersistenceConfigurationExtensions.StoreInSqlServer(Rebus.Config.StandardConfigurer{Rebus.Subscriptions.ISubscriptionStorage},System.String,System.String,System.Boolean,System.Boolean)">
+            <summary>
+            Configures Rebus to use SQL Server to strore subscriptions. Use <see cref="!:isCentralized"/> = true to indicate whether it's OK to short-circuit
+            subscribing and unsubscribing by manipulating the subscription directly from the subscriber or just let it default to false to preserve the
+            default behavior.
+            </summary>
+        </member>
+        <member name="T:Rebus.Retry.Simple.SimpleRetryStrategy">
+            <summary>
+            Implementation of <see cref="T:Rebus.Retry.IRetryStrategy"/> that tracks errors in memory
+            </summary>
+        </member>
+        <member name="M:Rebus.Routing.IRouter.GetDestinationAddress(Rebus.Messages.Message)">
+            <summary>
+            Called when sending messages
+            </summary>
+        </member>
+        <member name="M:Rebus.Routing.IRouter.GetOwnerAddress(System.String)">
+            <summary>
+            Called when subscribing to messages
+            </summary>
+        </member>
+        <member name="T:Rebus.Sagas.ISagaCorrelationProperty">
+            <summary>
+            Represents a path to a correlation property on a saga of a specific type
+            </summary>
+        </member>
+        <member name="T:Rebus.Sagas.CorrelationProperty">
+            <summary>
+            Represents a mapping from a field of an incoming message of a specific type to a specific property on a specific type of saga data
+            </summary>
+        </member>
+        <member name="T:Rebus.Sagas.ICorrelationConfig`1">
+            <summary>
+            Sets up the saga instance correlation configuration, i.e. it configures how the following question should be answered:
+            "given this incoming message, how should Rebus figure out which saga instance should be loaded to handle it?"
+            </summary>
+        </member>
+        <member name="M:Rebus.Sagas.ICorrelationConfig`1.Correlate``1(System.Func{``0,System.Object},System.Linq.Expressions.Expression{System.Func{`0,System.Object}})">
+            <summary>
+            Correlates an incoming message of type <see cref="!:TMessage"/>, using the specified <see cref="!:messageValueExtractorFunction"/> to
+            extract a value from the message. The value will be used when looking up a saga data instance using the specified <see cref="!:sagaDataValueExpression"/>.
+            You could for example do something like this:
+            <code>
+            config.Correlate&lt;TradeApproved&gt;(t =&gt; t.Id, d =&gt; d.TradeId);
+            </code>
+            to look up a saga instance by the "TradeId" field, querying by the value of the "Id" property of the incoming "TradeApproved" message.
+            </summary>
+            <typeparam name="TMessage">Specifies the message type to configure a correlation for</typeparam>
+            <param name="messageValueExtractorFunction">Configures a function to extract a value from the message. Since this is just a function, it may contain logic that e.g. concatenates fields, calls other functions, etc.</param>
+            <param name="sagaDataValueExpression">Configures an expression, which will be used when querying the chosen <see cref="T:Rebus.Sagas.ISagaStorage"/> - since this is an expression, it must point to a simple property of the relevant <see cref="!:TSagaData"/>.</param>
+        </member>
+        <member name="T:Rebus.Sagas.Saga">
+            <summary>
+            Saga base class that allows for passing around saga instances without being bothered by the type of saga data they're handling. You should
+            probably not inherit from this one, inherit your saga from <see cref="T:Rebus.Sagas.Saga`1"/> instead.
+            </summary>
+        </member>
+        <member name="T:Rebus.Sagas.Saga`1">
+            <summary>
+            Generic saga base class that must be made concrete by supplying the <see cref="!:TSagaData"/> type parameter.
+            </summary>
+        </member>
+        <member name="T:Rebus.Time.RebusTime">
+            <summary>
+            Global clock that Rebus services should use if they need to look up the current time
+            </summary>
+        </member>
+        <member name="T:Rebus.Time.RebusTimeMachine">
+            <summary>
+            Test utility that makes it easy to fake the time returned by <see cref="T:Rebus.Time.RebusTime"/>
+            </summary>
+        </member>
+        <member name="M:Rebus.Time.RebusTimeMachine.FakeIt(System.DateTimeOffset,System.Boolean)">
+            <summary>
+            Fakes the current time to the time specified, making slight increments in time for each invocation
+            (the slight increments can be turned off by setting <see cref="!:incrementSlightlyOnEachInvocation"/> to false)
+            </summary>
+        </member>
+        <member name="T:Rebus.Transport.InMem.InMemNetwork">
+            <summary>
+            Defines a network that the in-mem transport can work on, functioning as a namespace for the queue addresses
+            </summary>
+        </member>
+        <member name="T:Rebus.Transport.ITransport">
+            <summary>
+            The transport is responsible for sending and receiving messages
+            </summary>
+        </member>
+        <member name="M:Rebus.Transport.ITransport.CreateQueue(System.String)">
+            <summary>
+            Must create a queue with the given address
+            </summary>
+        </member>
+        <member name="M:Rebus.Transport.ITransport.Send(System.String,Rebus.Messages.TransportMessage,Rebus.Transport.ITransactionContext)">
+            <summary>
+            Sends the given <see cref="T:Rebus.Messages.TransportMessage"/> to the queue with the specified globally addressable name
+            </summary>
+        </member>
+        <member name="M:Rebus.Transport.ITransport.Receive(Rebus.Transport.ITransactionContext)">
+            <summary>
+            Receives the next message (if any) from the transport's input queue <see cref="P:Rebus.Transport.ITransport.Address"/>
+            </summary>
+        </member>
+        <member name="P:Rebus.Transport.ITransport.Address">
+            <summary>
+            Gets the global address of the transport's input queue
+            </summary>
+        </member>
+        <member name="T:Rebus.Pipeline.DefaultPipelineInvoker">
+            <summary>
+            give me a pipeline and I'll invoke it
+            </summary>
+        </member>
+        <member name="T:Rebus.Messages.TransportMessage">
+            <summary>
+            Transport message wrapper that has a set of headers and a stream of raw data to be sent/received
+            </summary>
+        </member>
+        <member name="T:Rebus.Messages.Message">
+            <summary>
+            Logical message wrapper that has a set of headers and a .NET object
+            </summary>
+        </member>
+        <member name="T:Rebus.Transport.ITransactionContext">
+            <summary>
+            Represents the context of one queue transaction
+            </summary>
+        </member>
+        <member name="M:Rebus.Transport.ITransactionContext.OnCommitted(System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Registers a listener to be called when the queue transaction is committed. This hook is reserved for the queue transaction
+            and you may get unpredictable results of you enlist your own transaction in this
+            </summary>
+        </member>
+        <member name="M:Rebus.Transport.ITransactionContext.OnAborted(System.Action)">
+            <summary>
+            Registers a listener to be called when the queue transaction is aborted. This hook is reserved for the queue transaction
+            and you may get unpredictable results of you enlist your own transaction in this
+            </summary>
+        </member>
+        <member name="M:Rebus.Transport.ITransactionContext.OnDisposed(System.Action)">
+            <summary>
+            Registers a listener to be called after the transaction is over
+            </summary>
+        </member>
+        <member name="M:Rebus.Transport.ITransactionContext.Abort">
+            <summary>
+            Signals that something is wrong and the queue transaction must be aborted
+            </summary>
+        </member>
+        <member name="P:Rebus.Transport.ITransactionContext.Items">
+            <summary>
+            Stash of items that can carry stuff for later use in the transaction
+            </summary>
+        </member>
+        <member name="M:Rebus.Transport.DefaultTransactionContext.Abort">
+            <summary>
+            Indicates that the transaction must not be committed and commit handlers must not be run
+            </summary>
+        </member>
+        <member name="M:Rebus.Transport.DefaultTransactionContext.Complete">
+            <summary>
+            Ends the current transaction but either committing it or aborting it, depending on whether someone voted for abortion
+            </summary>
+        </member>
+        <member name="F:Rebus.Transport.SqlServer.SqlServerTransport.MessagePriorityHeaderKey">
+            <summary>
+            Special message priority header that can be used with the <see cref="T:Rebus.Transport.SqlServer.SqlServerTransport"/>. The value must be an <see cref="T:System.Int32"/>
+            </summary>
+        </member>
+        <member name="F:Rebus.Transport.SqlServer.SqlServerTransport.DefaultExpiredMessagesCleanupInterval">
+            <summary>
+            Default interval that will be used for <see cref="P:Rebus.Transport.SqlServer.SqlServerTransport.ExpiredMessagesCleanupInterval"/> unless it is explicitly set to something else
+            </summary>
+        </member>
+        <member name="P:Rebus.Transport.SqlServer.SqlServerTransport.ExpiredMessagesCleanupInterval">
+            <summary>
+            Configures the interval between periodic deletion of expired messages. Defaults to <see cref="F:Rebus.Transport.SqlServer.SqlServerTransport.DefaultExpiredMessagesCleanupInterval"/>
+            </summary>
+        </member>
+        <member name="T:Rebus.Workers.IWorkerFactory">
+            <summary>
+            Factory responsible for creating a "worker"
+            </summary>
+        </member>
+        <member name="M:Rebus.Workers.IWorkerFactory.CreateWorker(System.String)">
+            <summary>
+            Must create a new worker with the given name
+            </summary>
+        </member>
+    </members>
+</doc>

@@ -2,14 +2,14 @@
 {
     public class TradeFinalized
     {
-        public string Id { get; private set; }
-        public string Commodity { get; private set; }
-
         public TradeFinalized(string id, string commodity)
         {
             Id = id;
             Commodity = commodity;
         }
+
+        public string Id { get; private set; }
+        public string Commodity { get; private set; }
 
         public override string ToString()
         {

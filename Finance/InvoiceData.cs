@@ -3,23 +3,34 @@ using Rebus.Sagas;
 
 namespace Finance
 {
-    public class InvoicingSagaData : ISagaData
+    public class InvoiceData : ISagaData
     {
-        public InvoicingSagaData()
+        const string DefaultConfirmationStatus = "<awaiting confirmation>";
+
+        public InvoiceData()
         {
-            IsNew = true;
             Description = "<no details available>";
-            ConfirmationStatus = "<awaiting confirmation>";
+            ConfirmationStatus = DefaultConfirmationStatus;
         }
 
         public Guid Id { get; set; }
         public int Revision { get; set; }
 
-        public bool IsNew { get; set; }
-
         public string TradeId { get; set; }
         public string Description { get; set; }
         public string ConfirmationStatus { get; set; }
+
+        public bool ReadyForInvoicing
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(TradeId)) return false;
+
+                if (ConfirmationStatus == DefaultConfirmationStatus) return false;
+
+                return true;
+            }
+        }
 
         public void PrintStatus()
         {
