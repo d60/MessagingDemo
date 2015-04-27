@@ -181,6 +181,27 @@
             <see cref="T:System.Threading.Tasks.Task"/>-based background timer thingie, that will periodically call an async <see cref="T:System.Func`1"/>
              </summary>
         </member>
+        <member name="F:Rebus.Timers.AsyncPeriodicBackgroundTask.DefaultInterval">
+            <summary>
+            This is the default interval between invocations if the periodic action, unless the <see cref="P:Rebus.Timers.AsyncPeriodicBackgroundTask.Interval"/> property is set to something else
+            </summary>
+        </member>
+        <member name="M:Rebus.Timers.AsyncPeriodicBackgroundTask.#ctor(System.String,System.Func{System.Threading.Tasks.Task})">
+            <summary>
+            Constructs the periodic background task with the given <see cref="!:description"/>, periodically executing the given <see cref="!:action"/>,
+            waiting <see cref="P:Rebus.Timers.AsyncPeriodicBackgroundTask.Interval"/> between invocations.
+            </summary>
+        </member>
+        <member name="M:Rebus.Timers.AsyncPeriodicBackgroundTask.Start">
+            <summary>
+            Starts the task
+            </summary>
+        </member>
+        <member name="P:Rebus.Timers.AsyncPeriodicBackgroundTask.Interval">
+            <summary>
+            Configures the interval between invocations. The default value is <see cref="F:Rebus.Timers.AsyncPeriodicBackgroundTask.DefaultInterval"/>
+            </summary>
+        </member>
         <member name="T:Rebus.Transport.AmbientTransactionContext">
             <summary>
             Provides an "ambient" context for stashing away an instance that implements the current <see cref="T:Rebus.Transport.ITransactionContext"/>. The

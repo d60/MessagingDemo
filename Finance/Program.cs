@@ -14,7 +14,7 @@ namespace Finance
     {
         const string ConnectionString = "server=.;database=demo;trusted_connection=true";
 
-        static void Main(string[] args)
+        static void Main()
         {
             using (var adapter = new BuiltinHandlerActivator())
             {

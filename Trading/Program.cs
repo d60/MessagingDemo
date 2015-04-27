@@ -11,6 +11,8 @@ namespace Trading
 {
     class Program
     {
+        const string ConnectionString = "server=.;database=demo;trusted_connection=true";
+
         static void Main()
         {
             using (var adapter = new BuiltinHandlerActivator())
@@ -18,7 +20,12 @@ namespace Trading
                 Configure.With(adapter)
                     .Logging(l => l.ColoredConsole(minLevel: LogLevel.Warn))
                     .Transport(t => t.UseMsmq("trading"))
-                    .Subscriptions(s => s.StoreInSqlServer("server=.;database=demo;trusted_connection=true", "subscriptions", isCentralized: true))
+                    .Subscriptions(s => s.StoreInSqlServer(ConnectionString, "subscriptions", isCentralized: true))
+                    .Options(o =>
+                    {
+                        o.SetNumberOfWorkers(1);
+                        o.SetMaxParallelism(1);
+                    })
                     .Start();
 
                 var bus = adapter.Bus;
